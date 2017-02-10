@@ -13,14 +13,18 @@ import scala.util.parsing.combinator._
   * Created by luisguerrero
   */
 
-case class Listing(pageTitle: String, action: Option[String], name: Option[String], lat: Option[String],
-                   long: Option[String], content: Option[String])
+case class Listing(id: String, pageTitle: String, action: Option[String], name: Option[String], location_0_coordinate: Option[Double],
+                   location_1_coordinate: Option[Double], location: Option[String], content: Option[String])
 
 object Listing {
-  def apply(page: String) = new Listing(page, None, None, None, None, None)
+  def apply(page: String) = new Listing(java.util.UUID.randomUUID.toString,page, None, None, None, None, None, None)
 
-  def apply(page: String, map: Map[String, Option[String]]) = new Listing(page, map("action"), map("name"),
-    map("lat"), map("long"), map("content"))
+  def apply(page: String, map: Map[String, Option[String]]) = new Listing(java.util.UUID.randomUUID.toString,page,
+    map("action"), map("name"), try { Some(map("lat").getOrElse("0").filterNot((x: Char) => x.isWhitespace).toDouble) }
+    catch { case _ => None }, try { Some(map("long").getOrElse("0").filterNot((x: Char) => x.isWhitespace).toDouble) }
+    catch { case _ => None }, {val location = (map("lat").getOrElse("").filterNot((x: Char) => x.isWhitespace) + "," +
+      map("long").getOrElse("").filterNot((x: Char) => x.isWhitespace)); if(location.startsWith(",") || location.endsWith(","))
+      None else Some(location)}, map("content"))
 }
 
 
@@ -65,16 +69,15 @@ object WikiMediaParser extends App with WikiMediaListing {
 
   val stream = new FileInputStream(args(0))
   val src = Source.fromInputStream(stream, "UTF-8")
-  val writer = new FileWriter(/*args(1)*/ "listings.json", true)
-  val bfwriter = new BufferedWriter(writer)
-  val pw = new PrintWriter(bfwriter)
+  //var writer = new FileWriter(/*args(1)*/ "listings.json", true)
+  //var bfwriter = new BufferedWriter(writer)
 
   try {
     parsePage(src.getLines().toStream, Nil)
   } catch {
-    case e: java.lang.Exception => println("script finished processing wiki file")
+    case e: java.lang.Exception => println("script finished processing wiki file," +
+      " processed [" + pagesRead + "] locations and [" + listingsSoFar + "] listings")
   }
-  pw.close()
 
 
   def parsePage(xml: LinearSeq[String], listings: List[Listing]): List[Listing] = {
@@ -122,7 +125,11 @@ object WikiMediaParser extends App with WikiMediaListing {
 
   def writeListingsToFile(lst: List[Listing]): Unit = {
     try {
+      val writer = new FileWriter("data/listings-" + pagesRead + ".json")
+      val pw = new PrintWriter(writer)
       pw.write(lst.asJson.toString)
+      pw.close()
+      //lst.foreach(x => pw.write(x.asJson.toString))
     } catch {
       case e: IOException => {
         println("error writing listings ")
