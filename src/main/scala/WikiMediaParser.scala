@@ -47,6 +47,7 @@ trait WikiMediaListing extends RegexParsers {
 object WikiMediaParser extends App with WikiMediaListing {
 
 
+  // these are locations which had issues and no listings could be extracted from them
   val locationsWithIssues = List("Angoulême", "Droitwich", "Gödöllő", "Lehigh Valley", "Louisville", "Munich",
     "Newark (Ohio)", "Pretoria", "Rosemount", "Samarkand", "Sauk Centre", "Savannah", "Spring Grove (Minnesota)",
     "Stoughton (Wisconsin)", "Varaždin", "Vega (Texas)", "Template:Easter Day", "Template:Easter Monday",
@@ -55,20 +56,24 @@ object WikiMediaParser extends App with WikiMediaListing {
 
   var listingsSoFar = 0
   var pagesRead = 0
-  var skippedlistings = 0
 
   val usage =
-    """ Usage: sbt \"run filename""
-      |    ex: sbt \"run enwikivoyage-20170101-pages-articles.xml\" """.stripMargin
+    """ Usage: sbt \"run filenameToRead filenameTowrite""
+      |    ex: sbt \"run enwikivoyage-20170101-pages-articles.xml listings.json\" """.stripMargin
 
-  if (args.length < 1) println(usage)
-  val stream = new FileInputStream(/*args(0)*/ "/Users/luisguerrero/Downloads/enwikivoyage-20170101-pages-articles.xml")
+  if (args.length < 2) {println(usage); System.exit(1)}
+
+  val stream = new FileInputStream(args(0))
   val src = Source.fromInputStream(stream, "UTF-8")
   val writer = new FileWriter(/*args(1)*/ "listings.json", true)
   val bfwriter = new BufferedWriter(writer)
   val pw = new PrintWriter(bfwriter)
 
-  parsePage(src.getLines().toStream, Nil)
+  try {
+    parsePage(src.getLines().toStream, Nil)
+  } catch {
+    case e: java.lang.Exception => println("script finished processing wiki file")
+  }
   pw.close()
 
 
@@ -87,8 +92,8 @@ object WikiMediaParser extends App with WikiMediaListing {
 
     if (!xml.isEmpty) {
       val (page, next) = captureTag("<page>", "</page>", xml)
-      if(next.isEmpty) listings
-      val pageList = page.toVector :+ next.head
+      val pageList = page.toVector :+ next.headOption.getOrElse(
+        throw new Exception("no more pages to read from wiki database"))
       if (isRedirect(pageList)) parsePage(next.tail, listings)
       else {
         pagesRead += 1
@@ -114,6 +119,7 @@ object WikiMediaParser extends App with WikiMediaListing {
     } else listings
   }
 
+
   def writeListingsToFile(lst: List[Listing]): Unit = {
     try {
       pw.write(lst.asJson.toString)
@@ -137,8 +143,8 @@ object WikiMediaParser extends App with WikiMediaListing {
   def buildListing(text: String, pageTitle: String): Listing = {
     parseAll(listing(pageTitle), text)
       .getOrElse({
-        println("there was a problem with " + text); Listing(pageTitle)
-      }) //throw new Exception(e,"could not create listing from xml document with current parser logic"))
+        println("there was a problem with the following listing [" + text + "]"); Listing(pageTitle)
+      })
   }
 
 }
