@@ -1,0 +1,12 @@
+.DS_Store
+
+# idea
+*.iml
+*.ipr
+*.iws
+.idea
+out
+
+#scala
+target
+*.class
