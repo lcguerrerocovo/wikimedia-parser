@@ -31,20 +31,32 @@ object Listing {
 trait WikiMediaListing extends RegexParsers {
   override def skipWhitespace = true
 
-  def listing(page: String): Parser[Listing] = name ~ "|" ~ repsep(pair, "|") ^^ {
+  def listing(page: String): Parser[Listing] = "{{" ~ name ~ "|" ~ repsep(pair, "|") ~ "}}" ^^ {
     {
-      case name ~ "|" ~ mp => Listing(page, (Map("action" -> Some(name)).withDefaultValue(None) ++ mp))
+      case "{{" ~ name ~ "|" ~ mp ~ "}}" => Listing(page,
+        (Map("action" -> Some(name)).withDefaultValue(None) ++ mp.map(x => (x._1,x._2))))
     }
   }
 
-  def pair: Parser[(String, Option[String])] = attr ~ "=" ~ text.? ^^ { x => (x._1._1, x._2) }
+  def pair: Parser[(String, Option[String], Option[(String, String)])] = attr ~ "=" ~
+    opt(text) ~ opt(innerPair) ^^ {
+      case x ~ "=" ~ y ~ z => (x,y,z)
+  }
+
+  def innerPair: Parser[(String, String)] = "{{" ~ simAttr ~ "|" ~ text ~ "}}" ^^ {
+    {
+      case ("{{" ~ simAttr ~ "|" ~ text ~ "}}") => (simAttr, text)
+    }
+  }
+
+  def simAttr: Parser[String] = "dead link"
 
   def name: Parser[String] = ("see" | "do")
 
   def attr: Parser[String] = ("checkin" | "checkout" | "name" | "alt" | "email" | "url" | "address" | "lat" | "long" | "wikidata" |
     "directions" | "phone" | "tollfree" | "fax" | "hours" | "price" | "lastedit" | "content" | "wikipedia" | "image")
 
-  def text: Parser[String] = """[^|\n\r]*""".r | ""
+  def text: Parser[String] = """.+?(?=(\||\{\{|\}\}))""".r | ""
 }
 
 
