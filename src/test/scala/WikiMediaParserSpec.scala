@@ -174,6 +174,41 @@ class WikiMediaParserSpec  extends FlatSpec with Matchers with WikiMediaListing 
              | official residence of the governor of West Java province.""".stripMargin.replaceAll("\n", ""))))
 
   }
+
+  it should "parse listing when we have string enclosed in single brackets" in {
+
+    val txt = """{{see| name=Pentagon | alt= | url= | email=| address= | lat=38.871111 | long=-77.055833 |
+    |directions=Just across the Potomac River from downtown DC. ''Metro'': Pentagon| phone= |
+    |tollfree= | fax=| hours= | price=| wikipedia=The Pentagon | image=The Pentagon January 2008.jpg |
+    |wikidata=Q11208| content=While lingering is not recommended for security reasons, you should know
+    |it is the largest office building in the world, and covers 4 zip codes. (Army, Navy, Air Force and
+    |Department of Defense.) Group tours are still available, but only by advance arrangement.
+    |The [http://whs.mil/Memorial/ Pentagon Memorial] is open 24&amp;nbsp;hours to visitors on the
+    |Washington Blvd side, where Flight 77 hit. Photography is allowed at the memorial, but
+    |is '''not permitted''' anywhere else on the Pentagon grounds— take photos anywhere else on
+    |site, and you may face a lengthy interrogation by the Pentagon Police and will probably be
+    |asked to delete the images. On a lighter note, the interior courtyard is irreverently referred
+    |to by employees as &quot;Ground Zero,&quot; as it was the target of a number of Soviet missiles
+    |during the Cold War.}}""".stripMargin.replaceAll("\n", "")
+
+    val lst = parseAll(listing("whatever"), txt).getOrElse(Listing("whatever"))
+
+    lst.copy(id="") should equal (Listing("","whatever",Some("see"),
+      Some("Pentagon "),
+      Some(38.871111),Some(-77.055833),Some("38.871111,-77.055833"),
+      Some("""While lingering is not recommended for security reasons, you should know
+             |it is the largest office building in the world, and covers 4 zip codes. (Army, Navy, Air Force and
+             |Department of Defense.) Group tours are still available, but only by advance arrangement.
+             |The [http://whs.mil/Memorial/ Pentagon Memorial] is open 24&amp;nbsp;hours to visitors on the
+             |Washington Blvd side, where Flight 77 hit. Photography is allowed at the memorial, but
+             |is '''not permitted''' anywhere else on the Pentagon grounds— take photos anywhere else on
+             |site, and you may face a lengthy interrogation by the Pentagon Police and will probably be
+             |asked to delete the images. On a lighter note, the interior courtyard is irreverently referred
+             |to by employees as &quot;Ground Zero,&quot; as it was the target of a number of Soviet missiles
+             |during the Cold War.""".stripMargin.replaceAll("\n", ""))))
+
+  }
+  
   it should "get a stream" in {
     val txt = "{{ this is {{ a test {{ to catch }} substrings }} and match }} }} brackets"
     WikiMediaParser.extractInnerExpression(txt,"{{","}}")

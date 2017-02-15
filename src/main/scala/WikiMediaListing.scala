@@ -32,6 +32,8 @@ trait WikiMediaListing extends RegexParsers {
     {
       case (("{{"|"[[") ~ x ~ Some("|") ~ y ~ ("}}"|"]]")) => x
       case (("{{"|"[[") ~ x ~ None ~ Some("") ~ ("}}"|"]]")) => x + " "
+      //case ("[" ~ x ~ Some("|") ~ Some(y) ~ "]") => x + " "
+      //case ("[" ~ x ~ None ~ Some("") ~ "]") => x + " "
     }
   }
   
@@ -40,6 +42,6 @@ trait WikiMediaListing extends RegexParsers {
   def attr: Parser[String] = ("checkin" | "checkout" | "name" | "alt" | "email" | "url" | "address" | "lat" | "long" | "wikidata" |
     "directions" | "phone" | "tollfree" | "fax" | "hours" | "price" | "lastedit" | "content" | "wikipedia" | "image")
 
-  def text: Parser[String] = """[^\||\{\{|\}\}|\[\[|\]\]]+?(?=(\r|\n|\||\{\{|\}\}|\[\[|\]\]|$))""".r | ""
+  def text: Parser[String] = """(^|\r|\n|\||\{\{|\}\}|\[\[|\]\]).*?(?=(\r|\n|\||\{\{|\}\}|\[\[|\]\]|$))""".r | ""
 
 }
