@@ -13,14 +13,6 @@ import scala.io.Source
 
 object WikiMediaParser extends App with WikiMediaListing with TextParser {
 
-
-  // these are locations which had issues and no listings could be extracted from them
-  val locationsWithIssues = List("Angoulême", "Droitwich", "Gödöllő", "Lehigh Valley", "Louisville", "Munich",
-    "Newark (Ohio)", "Pretoria", "Rosemount", "Samarkand", "Sauk Centre", "Savannah", "Spring Grove (Minnesota)",
-    "Stoughton (Wisconsin)", "Varaždin", "Vega (Texas)", "Template:Easter Day", "Template:Easter Monday",
-    "Template:Good Friday", "Template:Pentecost", "Template:Whit Monday", "Nelson (England)", "Mabinay",
-    "Edipsos")
-
   var listingsSoFar = 0
   var pagesRead = 0
 
@@ -69,15 +61,12 @@ object WikiMediaParser extends App with WikiMediaListing with TextParser {
         val text = trim((tx.toVector :+ xn.headOption.getOrElse(Nil)) mkString "\n", "<text xml:space=\"preserve\">", "</text>")
 
         println("going to process [" + title + "] location")
-
-        if (!locationsWithIssues.contains(title)) {
-          val lst = parseText(text)
-          val lst2 = lst.map(buildListing(_, title)).flatten//::: listings
-
-          listingsSoFar += lst2.size
-          println("processed " + (listingsSoFar) + " listings so far")
-          writeListingsToFile(lst2)
-        }
+        val lst = parseText(text)
+        val lst2 = lst.map(buildListing(_, title)).flatten//::: listings
+        listingsSoFar += lst2.size
+        
+        println("processed " + (listingsSoFar) + " listings so far")
+        writeListingsToFile(lst2)
         parsePage(next.tail, listings)
       }
     } else listings
