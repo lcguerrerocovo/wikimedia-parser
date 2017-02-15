@@ -16,20 +16,22 @@ trait WikiMediaListing extends RegexParsers {
     }
   }
 
+  // no longer used, just kept here until we establish we can parse all listings this way
   def pair: Parser[(String, Option[String])] = attr ~ "=" ~
     opt(text) ^^ {
     case x ~ "=" ~ y => (x,y)
   }
 
   def pair2: Parser[(String, Option[String])] = attr ~ "=" ~
-    opt(text) ~ opt(innerPair) ~ opt(text) ^^ {
-      case x ~ "=" ~ y1 ~ z ~ y2 => (x, Some(y1.getOrElse("") + z.getOrElse(("",""))._1 + y2.getOrElse("")))
+    opt(text) ~ rep(innerPair ~ text) ^^ {
+      case x ~ "=" ~ y1 ~ z => (x,
+        Some(y1.getOrElse("") + z.map(x => x._1 + x._2).foldLeft("")(_ + _)))
   }
 
-  def innerPair: Parser[(String, String)] = ("{{"|"[[") ~ text ~ opt("|") ~ text ~ ("}}"|"]]") ^^ {
+  def innerPair: Parser[String] = ("{{"|"[[") ~ text ~ opt("|") ~ opt(text) ~ ("}}"|"]]") ^^ {
     {
-      case (("{{"|"[[") ~ x ~ Some("|") ~ y ~ ("}}"|"]]")) => (x, y)
-      case (("{{"|"[[") ~ x ~ None ~ y ~ ("}}"|"]]")) => (x, y)
+      case (("{{"|"[[") ~ x ~ Some("|") ~ y ~ ("}}"|"]]")) => x
+      case (("{{"|"[[") ~ x ~ None ~ Some("") ~ ("}}"|"]]")) => x + " "
     }
   }
   
