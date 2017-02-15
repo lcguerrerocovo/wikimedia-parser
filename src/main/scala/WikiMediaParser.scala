@@ -6,61 +6,12 @@ import io.circe.syntax._
 import scala.collection.LinearSeq
 import scala.collection.immutable.Nil
 import scala.io.Source
-import scala.util.parsing.combinator._
-
 
 /**
   * Created by luisguerrero
   */
 
-case class Listing(id: String, pageTitle: String, action: Option[String], name: Option[String], location_0_coordinate: Option[Double],
-                   location_1_coordinate: Option[Double], location: Option[String], content: Option[String])
-
-object Listing {
-  def apply(page: String) = new Listing(java.util.UUID.randomUUID.toString,page, None, None, None, None, None, None)
-
-  def apply(page: String, map: Map[String, Option[String]]) = new Listing(java.util.UUID.randomUUID.toString,page,
-    map("action"), map("name"), try { Some(map("lat").getOrElse("0").filterNot((x: Char) => x.isWhitespace).toDouble) }
-    catch { case _ => None }, try { Some(map("long").getOrElse("0").filterNot((x: Char) => x.isWhitespace).toDouble) }
-    catch { case _ => None }, {val location = (map("lat").getOrElse("").filterNot((x: Char) => x.isWhitespace) + "," +
-      map("long").getOrElse("").filterNot((x: Char) => x.isWhitespace)); if(location.startsWith(",") || location.endsWith(","))
-      None else Some(location)}, map("content"))
-}
-
-
-trait WikiMediaListing extends RegexParsers {
-  override def skipWhitespace = true
-
-  def listing(page: String): Parser[Listing] = "{{" ~ name ~ "|" ~ repsep(pair, "|") ~ "}}" ^^ {
-    {
-      case "{{" ~ name ~ "|" ~ mp ~ "}}" => Listing(page,
-        (Map("action" -> Some(name)).withDefaultValue(None) ++ mp.map(x => (x._1,x._2))))
-    }
-  }
-
-  def pair: Parser[(String, Option[String], Option[(String, String)])] = attr ~ "=" ~
-    opt(text) ~ opt(innerPair) ^^ {
-      case x ~ "=" ~ y ~ z => (x,y,z)
-  }
-
-  def innerPair: Parser[(String, String)] = "{{" ~ simAttr ~ "|" ~ text ~ "}}" ^^ {
-    {
-      case ("{{" ~ simAttr ~ "|" ~ text ~ "}}") => (simAttr, text)
-    }
-  }
-
-  def simAttr: Parser[String] = "dead link"
-
-  def name: Parser[String] = ("see" | "do")
-
-  def attr: Parser[String] = ("checkin" | "checkout" | "name" | "alt" | "email" | "url" | "address" | "lat" | "long" | "wikidata" |
-    "directions" | "phone" | "tollfree" | "fax" | "hours" | "price" | "lastedit" | "content" | "wikipedia" | "image")
-
-  def text: Parser[String] = """.+?(?=(\||\{\{|\}\}))""".r | ""
-}
-
-
-object WikiMediaParser extends App with WikiMediaListing {
+object WikiMediaParser extends App with WikiMediaListing with TextParser {
 
 
   // these are locations which had issues and no listings could be extracted from them
@@ -81,8 +32,6 @@ object WikiMediaParser extends App with WikiMediaListing {
 
   val stream = new FileInputStream(args(0))
   val src = Source.fromInputStream(stream, "UTF-8")
-  //var writer = new FileWriter(/*args(1)*/ "listings.json", true)
-  //var bfwriter = new BufferedWriter(writer)
 
   try {
     parsePage(src.getLines().toStream, Nil)
@@ -123,7 +72,7 @@ object WikiMediaParser extends App with WikiMediaListing {
 
         if (!locationsWithIssues.contains(title)) {
           val lst = parseText(text)
-          val lst2 = lst.map(buildListing(_, title)) //::: listings
+          val lst2 = lst.map(buildListing(_, title)).flatten//::: listings
 
           listingsSoFar += lst2.size
           println("processed " + (listingsSoFar) + " listings so far")
@@ -141,7 +90,6 @@ object WikiMediaParser extends App with WikiMediaListing {
       val pw = new PrintWriter(writer)
       pw.write(lst.asJson.toString)
       pw.close()
-      //lst.foreach(x => pw.write(x.asJson.toString))
     } catch {
       case e: IOException => {
         println("error writing listings ")
@@ -151,19 +99,15 @@ object WikiMediaParser extends App with WikiMediaListing {
     }
   }
 
-
-  def parseText(text: String): List[String] = {
-    //val all = "\\{\\{(see|do)[^\\}]*\\}\\}".r.findAllIn(text)
-    val all = "\\{\\{(see|do)([^{{}}]*|\\{\\{[^{{}}]*\\}\\})*\\}\\}".r.findAllIn(text)
-    val bremoved = all.map(x => (x.toCharArray.filter(_ >= ' ')).drop(2).dropRight(2) mkString "")
-    bremoved.map(_.replaceAll("\\{\\{[^{{}}]*\\}\\}", "")).toList
-  }
-
-  def buildListing(text: String, pageTitle: String): Listing = {
-    parseAll(listing(pageTitle), text)
-      .getOrElse({
-        println("there was a problem with the following listing [" + text + "]"); Listing(pageTitle)
-      })
+  def buildListing(text: String, pageTitle: String): Option[Listing] = {
+    if(List("see","do") exists (text.stripPrefix("{{").trim startsWith _))  {
+      try {
+        Some(parseAll(listing(pageTitle), text).get)
+      } catch {
+        case e: Exception => println("problem processing listing because of " +e); println(text); None
+      }
+    }
+    else None
   }
 
 }
