@@ -117,6 +117,46 @@ class WikiMediaParserSpec  extends FlatSpec with Matchers with WikiMediaListing 
         .stripMargin.replaceAll("\n", ""))))
   }
 
+  it should "parse listing when name has inner 'pair' with only one member" in  {
+    val txt =
+      """{{do| name= ''Prašivá'' or ''Veľká Chocuľa'' peaks in [[Low Tatras]] |
+        | alt= | url= | email=| address= | lat=48.8938 | long=19.3310 |
+        | directions=Start in ''Liptovská Lúžna'' or ''Korytnica''| phone= |
+        | tollfree= | fax=| hours= | price=| lastedit=2016-11-10|
+        | content=The hike up is quite steep for an hour or two.}}""".stripMargin.replaceAll("\n", "")
+
+    val lst = parseAll(listing("whatever"), txt).getOrElse(Listing("whatever"))
+
+    lst.copy(id="") should equal (Listing("","whatever",Some("do"),
+      Some("""''Prašivá'' or ''Veľká Chocuľa'' peaks in Low Tatras"""),
+      Some(48.8938),Some(19.3310),Some("48.8938,19.3310"),
+      Some("""The hike up is quite steep for an hour or two."""
+        .stripMargin.replaceAll("\n", ""))))
+
+  }
+
+  it should "parse listing when there are multiple inner 'pairs' with only one member in an entity" in {
+
+    val txt =
+      """{{see| name=Gedung Pakuan | alt=Huis van de Resident | url= | email=| address=Jl. Cicendo No 1 |
+        |lat=-6.911792 | long=107.604771 | directions=northern end of Jl. Otto Iskandardinata| phone= |
+        |tollfree= | fax=| hours= | price=| lastedit=2016-12-07| content=Built 1864-1867 as the new
+        |residence of the resident of the residency of [[Parahyangan]], as its capital was moved
+        |from [[Cianjur]] to Bandung. The Indies Empire style building is nowadays used as the
+        |official residence of the governor of West Java province.}}""".stripMargin.replaceAll("\n", "")
+
+    val lst = parseAll(listing("whatever"), txt).getOrElse(Listing("whatever"))
+
+    lst.copy(id="") should equal (Listing("","whatever",Some("see"),
+      Some("Gedung Pakuan"),
+      Some(-6.911792),Some(107.604771),Some("-6.911792,107.604771"),
+      Some("""Built 1864-1867 as the new
+             |residence of the resident of the residency of Parahyangan, as its capital was moved
+             |from Cianjur to Bandung. The Indies Empire style building is nowadays used as the
+             |official residence of the governor of West Java province.""".stripMargin.replaceAll("\n", ""))))
+
+  }
+
   it should "get a stream" in {
     val txt = "{{ this is {{ a test {{ to catch }} substrings }} and match }} }} brackets"
     WikiMediaParser.extractInnerExpression(txt,"{{","}}")

@@ -26,9 +26,10 @@ trait WikiMediaListing extends RegexParsers {
       case x ~ "=" ~ y1 ~ z ~ y2 => (x, Some(y1.getOrElse("") + z.getOrElse(("",""))._1 + y2.getOrElse("")))
   }
 
-  def innerPair: Parser[(String, String)] = ("{{"|"[[") ~ text ~ "|" ~ text ~ ("}}"|"]]") ^^ {
+  def innerPair: Parser[(String, String)] = ("{{"|"[[") ~ text ~ opt("|") ~ text ~ ("}}"|"]]") ^^ {
     {
-      case (("{{"|"[[") ~ x ~ "|" ~ y ~ ("}}"|"]]")) => (x, y)
+      case (("{{"|"[[") ~ x ~ Some("|") ~ y ~ ("}}"|"]]")) => (x, y)
+      case (("{{"|"[[") ~ x ~ None ~ y ~ ("}}"|"]]")) => (x, y)
     }
   }
   
