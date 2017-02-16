@@ -1,4 +1,5 @@
 import java.io._
+import java.nio.file.Path
 
 import io.circe.generic.auto._
 import io.circe.syntax._
@@ -6,6 +7,7 @@ import io.circe.syntax._
 import scala.collection.LinearSeq
 import scala.collection.immutable.Nil
 import scala.io.Source
+
 
 /**
   * Created by luisguerrero
@@ -22,6 +24,8 @@ object WikiMediaParser extends App with WikiMediaListing with TextParser {
 
   if (args.length < 2) {println(usage); System.exit(1)}
 
+  val dir = new File(String.valueOf("data"))
+  dir.mkdirs()
   val stream = new FileInputStream(args(0))
   val src = Source.fromInputStream(stream, "UTF-8")
 
