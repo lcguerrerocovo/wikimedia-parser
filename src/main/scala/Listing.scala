@@ -1,13 +1,15 @@
-import java.time.Instant
+import java.time.{Instant, ZoneId}
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.{ThreadLocalRandom, TimeUnit}
 
 /**
   * Created by luisguerrero on 2/14/17.
   */
+
 case class Listing(id: String, pageTitle: String, action: Option[String], name: Option[String],
                    location_0_coordinate: Option[Double], location_1_coordinate: Option[Double],
                    location: Option[String], content: Option[String], popularity: Double = 0,
-                   freshness: Double = 0, quality: Double = 0, createDate: Long = Instant.now().toEpochMilli)
+                   freshness: Double = 0, quality: Double = 0, createDate: String = Util.formatInstant(Instant.now))
 
 object Listing {
   def apply(page: String) = new Listing(java.util.UUID.randomUUID.toString,page, None, None, None, None, None, None)
@@ -20,7 +22,7 @@ object Listing {
       val freshness = Math.exp(-((Instant.now().toEpochMilli-date))*0.0000000005)
       val popularity = ThreadLocalRandom.current().nextInt(1, 101)/100d
       val quality = map.size/25d
-      listing.copy(createDate = date, freshness = freshness,
+      listing.copy(createDate = Util.formatInstant(Instant.ofEpochMilli(date)), freshness = freshness,
         popularity = popularity, quality = quality)
     }
     case false => apply(page,map)
