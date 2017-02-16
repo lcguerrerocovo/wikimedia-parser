@@ -1,6 +1,7 @@
 import java.text.SimpleDateFormat
 import java.time.{Instant, ZoneId}
 import java.time.format.DateTimeFormatter
+import java.security.MessageDigest
 
 /**
   * Created by luisguerrero on 2/15/17.
@@ -22,5 +23,8 @@ object Util {
   def generateID = java.util.UUID.randomUUID.toString
 
   def trim(str: String) = str.filterNot((x: Char) => x.isWhitespace)
+
+
+  def md5(s: String) = MessageDigest.getInstance("MD5").digest(s.getBytes).map("%02x".format(_)).mkString
 
 }
