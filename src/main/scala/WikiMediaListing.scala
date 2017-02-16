@@ -9,20 +9,14 @@ import scala.util.parsing.combinator.syntactical.StandardTokenParsers
 trait WikiMediaListing extends RegexParsers {
   override def skipWhitespace = true
 
-  def listing(page: String): Parser[Listing] = "{{" ~ name ~ "|" ~ repsep(pair2, "|") ~ "}}" ^^ {
+  def listing(page: String): Parser[Listing] = "{{" ~ name ~ "|" ~ repsep(pair, "|") ~ "}}" ^^ {
     {
       case "{{" ~ name ~ "|" ~ mp ~ "}}" => Listing(page,
-        (Map("action" -> Some(name)).withDefaultValue(None) ++ mp.map(x => (x._1,x._2))),true)
+        (Map("action" -> Some(name)).withDefaultValue(None) ++ mp.map(x => (x._1,x._2))),generate = true)
     }
   }
 
-  // no longer used, just kept here until we establish we can parse all listings this way
   def pair: Parser[(String, Option[String])] = attr ~ "=" ~
-    opt(text) ^^ {
-    case x ~ "=" ~ y => (x,y)
-  }
-
-  def pair2: Parser[(String, Option[String])] = attr ~ "=" ~
     opt(text) ~ rep(innerPair ~ text) ^^ {
       case x ~ "=" ~ y1 ~ z => (x,
         Some(y1.getOrElse("") + z.map(x => x._1 + x._2).foldLeft("")(_ + _)))
