@@ -12,7 +12,7 @@ trait WikiMediaListing extends RegexParsers {
   def listing(page: String): Parser[Listing] = "{{" ~ name ~ "|" ~ repsep(pair2, "|") ~ "}}" ^^ {
     {
       case "{{" ~ name ~ "|" ~ mp ~ "}}" => Listing(page,
-        (Map("action" -> Some(name)).withDefaultValue(None) ++ mp.map(x => (x._1,x._2))))
+        (Map("action" -> Some(name)).withDefaultValue(None) ++ mp.map(x => (x._1,x._2))),true)
     }
   }
 
